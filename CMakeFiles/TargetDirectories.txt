@@ -1,0 +1,3 @@
+/home/do/Desktop/do_code/mesh_visualizer/CMakeFiles/rebuild_cache.dir
+/home/do/Desktop/do_code/mesh_visualizer/CMakeFiles/edit_cache.dir
+/home/do/Desktop/do_code/mesh_visualizer/CMakeFiles/mesh_visualizer.dir

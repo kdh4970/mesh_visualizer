@@ -1,0 +1,1 @@
+/usr/bin/c++     CMakeFiles/mesh_visualizer.dir/src/main.cpp.o  -o mesh_visualizer  -Wl,-rpath,/usr/local/cuda-11.3/lib64 /usr/lib/x86_64-linux-gnu/libGL.so /usr/lib/x86_64-linux-gnu/libGLU.so /usr/lib/x86_64-linux-gnu/libglut.so /usr/lib/x86_64-linux-gnu/libXmu.so /usr/lib/x86_64-linux-gnu/libXi.so /usr/local/cuda-11.3/lib64/libcudart.so 
