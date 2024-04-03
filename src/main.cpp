@@ -9,13 +9,15 @@
 
 #define REFRESH_DELAY 10
 
-GLuint posVbo;
-GLint gl_Shader;
-struct cudaGraphicsResource *cuda_posvbo_resource;
+GLuint posVbo, faceVbo;
+uint* indices;
+struct cudaGraphicsResource *cuda_posvbo_resource, *cuda_facevbo_resource;
 
 
 float4 *d_pos = 0;
+uint3 *d_face = 0;
 uint totalVerts = 0;
+uint totalFaces = 0;
 
 unsigned int window_width = 2560;
 unsigned int window_height = 1440;
@@ -62,7 +64,7 @@ void meshcopyHtoD(mesh_t mesh);
 int main(int argc, char** argv)
 {
 
-  std::string filename = "/home/do/Desktop/do_code/mesh_deduplicator_cuda/data/sample_mesh_data.txt";
+  std::string filename = "/home/do/Desktop/do_code/mesh_deduplicator_cuda/data/sample_mesh_data2.txt";
   mesh_t mesh = read_mesh(filename);
   
   if(false == initGL(&argc, argv))
@@ -138,9 +140,6 @@ bool initGL(int *argc, char** argv)
   glEnable(GL_LIGHT0);
   // glEnable(GL_NORMALIZE);
 
-  // load shader program
-  // gl_Shader = compileASMShader(GL_FRAGMENT_PROGRAM_ARB, shader_code);
-
 
   // Set glut Functions
   glutDisplayFunc(display);
@@ -162,10 +161,12 @@ void initMesh()
   size_t maxVerts = 1e6;
   // create VBOs
   createVBO(&posVbo, maxVerts * sizeof(float) * 4);
+  createVBO(&faceVbo, maxVerts * sizeof(uint) * 3);
   // DEPRECATED: checkCudaErrors( cudaGLRegisterBufferObject(posVbo) );
   checkCudaErrors(cudaGraphicsGLRegisterBuffer(
       &cuda_posvbo_resource, posVbo, cudaGraphicsMapFlagsWriteDiscard));
-
+  checkCudaErrors(cudaGraphicsGLRegisterBuffer(
+      &cuda_facevbo_resource, faceVbo, cudaGraphicsMapFlagsWriteDiscard));
   
   // createVBO(&normalVbo, maxVerts * sizeof(float) * 4);
   // // DEPRECATED: checkCudaErrors(cudaGLRegisterBufferObject(normalVbo));
@@ -179,22 +180,20 @@ void initMesh()
 // Render isosurface geometry from the vertex buffers
 ////////////////////////////////////////////////////////////////////////////////
 void renderIsosurface() {
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, faceVbo);
   glBindBuffer(GL_ARRAY_BUFFER, posVbo);
   glVertexPointer(4, GL_FLOAT, 0, 0);
   glEnableClientState(GL_VERTEX_ARRAY);
 
-  // glColor3f(0.6, 0.6, 0.6);
-  // glDrawArrays(GL_TRIANGLES, 0, totalVerts);
 
-  // 면 렌더링
-  glColor3f(1.0, 1.0, 1.0);
-  glDrawArrays(GL_TRIANGLES, 0, totalVerts);
 
-  // 엣지 렌더링
+  glColor3f(0.8, 0.8, 0.8);
+  glDrawElements(GL_TRIANGLES, totalFaces * 3, GL_UNSIGNED_INT, 0);
+  
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glColor3f(0.0, 0.1, 0.0);
-  glDrawArrays(GL_TRIANGLES, 0, totalVerts);
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // 다시 면 렌더링 모드로 변경
+  glDrawElements(GL_TRIANGLES, totalFaces * 3, GL_UNSIGNED_INT, 0);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   glDisableClientState(GL_VERTEX_ARRAY);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -202,7 +201,7 @@ void renderIsosurface() {
 
 void cleanup() {
   deleteVBO(&posVbo, &cuda_posvbo_resource);
-  // deleteVBO(&normalVbo, &cuda_normalvbo_resource);
+  deleteVBO(&faceVbo, &cuda_facevbo_resource);
   
 }
 
@@ -445,4 +444,13 @@ void meshcopyHtoD(mesh_t mesh)
   checkCudaErrors(cudaMemcpy(d_pos, mesh.vertices, mesh.num_vertices * sizeof(float4), cudaMemcpyHostToDevice));
 
   checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_posvbo_resource, 0));
+
+  checkCudaErrors(cudaGraphicsMapResources(1, &cuda_facevbo_resource, 0));
+  checkCudaErrors(cudaGraphicsResourceGetMappedPointer(
+      (void **)&d_face, &num_bytes, cuda_facevbo_resource));
+  
+  totalFaces = mesh.num_triangles;
+  checkCudaErrors(cudaMemcpy(d_face, mesh.triangles, mesh.num_triangles * sizeof(uint3), cudaMemcpyHostToDevice));
+
+  checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_facevbo_resource, 0));
 }

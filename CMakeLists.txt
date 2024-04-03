@@ -22,5 +22,4 @@ endif()
 
 target_include_directories(mesh_visualizer PUBLIC ${CUDA_INCLUDE_DIRS} include)
 
-target_link_libraries(mesh_visualizer ${OPENGL_LIBRARY} ${GLUT_LIBRARY})
-target_link_libraries(mesh_visualizer ${CUDA_LIBRARIES})
+target_link_libraries(mesh_visualizer ${OPENGL_LIBRARY} ${GLUT_LIBRARY} ${CUDA_LIBRARIES})
